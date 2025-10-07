@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Генератор логина и пароля</title>
+  <style>
+    body{font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.6;}textarea{width: 100%;
+      height: 200px;
+      padding: 10px;
+      font-family: monospace;
+      margin-bottom: 10px;}button{padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;}table{width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;}th, td{border: 1px solid #ccc;
+      padding: 8px 12px;
+      text-align: left;
+      font-family: monospace;}th{background-color: #f0f0f0;}.error{color: red;}.success{color: green;}</style>
+</head>
+<body>
+  <h2>Генератор логина и пароля из ФИО</h2>
+  <p>Введите ФИО (по одному на строку, минимум Фамилия и Имя):</p>
+  <textarea id="input" placeholder="Иванов Иван Иванович
+Петрова Анна"></textarea>
+  <br />
+  <button onclick="generate()">Сгенерировать</button>
+
+  <div id="output"></div>
+
+  <script>
+    // Словарь транслитерации
+    const translitDict ={'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+      'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'i', 'к': 'k', 'л': 'l', 'м': 'm',
+      'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+      'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '',
+      'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'};
+
+    function transliterate(str){return str.toLowerCase().split('').map(char => translitDict[char]|| char).join('');}// Надёжная генерация пароля с соблюдением всех требований
+    function generatePassword(length = 12){const lower = 'abcdefghijklmnopqrstuvwxyz';
+      const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const digits = '0123456789';
+      const all = lower + upper + digits + '!@#$%^&*()_+'; // спецсимволы по желанию
+
+      // Гарантируем наличие хотя бы одного символа из каждой обязательной категории
+      let password = '';
+      password += lower[Math.floor(Math.random() * lower.length)];
+      password += upper[Math.floor(Math.random() * upper.length)];
+      password += digits[Math.floor(Math.random() * digits.length)];
+
+      // Добавляем остальные символы случайно
+      for (let i = password.length; i < length; i++){password += all[Math.floor(Math.random() * all.length)];}// Перемешиваем пароль, чтобы гарантированные символы не были всегда в начале
+      return password.split('').sort(() => 0.5 - Math.random()).join('');}function generate(){const input = document.getElementById('input').value.trim();
+      if (!input){document.getElementById('output').innerHTML = '';
+        return;}const lines = input.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>ФИО</th>
+              <th>Логин</th>
+              <th>Пароль</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      for (const fullName of lines){let login = '', password = '', status = '', statusClass = '';
+
+        const parts = fullName.trim().split(/\s+/).filter(p => p.length > 0);
+
+        if (parts.length < 2){status = 'Ошибка: Требуется минимум Фамилия и Имя';
+          statusClass = 'error';}else{const lastName = transliterate(parts[0]);
+          const firstInitial = parts[1]? transliterate(parts[1][0]) : '';
+          const middleInitial = parts[2]? transliterate(parts[2][0]) : '';
+
+          if (!lastName){status = 'Ошибка транслитерации фамилии';
+            statusClass = 'error';}else{login = `${lastName}_${firstInitial}${middleInitial}`.toLowerCase();
+            password = generatePassword(12); // можно изменить длину при необходимости
+            status = 'Успешно';
+            statusClass = 'success';}}html += `
+          <tr>
+            <td>${escapeHtml(fullName)}</td>
+            <td>${escapeHtml(login)}</td>
+            <td>${escapeHtml(password)}</td>
+            <td class="${statusClass}">${escapeHtml(status)}</td>
+          </tr>
+        `;}html += `
+          </tbody>
+        </table>
+      `;
+
+      document.getElementById('output').innerHTML = html;}// Защита от XSS
+    function escapeHtml(text){const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;}</script>
+</body>
+</html>
